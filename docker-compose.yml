@@ -1,9 +1,8 @@
-# version: '3.8'    ← امسح السطر ده
 
 services:
   api:
     build:
-      context: .          # ⚠️ مهم: البناء من الفولدر الحالي
+      context: 
       dockerfile: Dockerfile
     container_name: sentiment_api
     ports:
