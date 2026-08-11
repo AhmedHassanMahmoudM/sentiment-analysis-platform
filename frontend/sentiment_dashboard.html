@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --card-hover: #334155;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.3);
+            --positive: #22c55e;
+            --negative: #ef4444;
+            --neutral: #eab308;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--card-hover);
+            border: 1px solid var(--border);
+        }
+
+        .result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: none;
+        }
+
+        .result.show { display: block; }
+
+        .sentiment-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .sentiment-positive {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--positive);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .sentiment-negative {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--negative);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .sentiment-neutral {
+            background: rgba(234, 179, 8, 0.15);
+            color: var(--neutral);
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+
+        .confidence-bar {
+            height: 8px;
+            background: var(--bg);
+            border-radius: 999px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.5s ease;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .meta-item {
+            text-align: center;
+            padding: 0.75rem;
+            background: var(--card);
+            border-radius: 8px;
+        }
+
+        .meta-item .value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .meta-item .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .error.show { display: block; }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .loading.show { display: block; }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .batch-results {
+            margin-top: 1rem;
+        }
+
+        .batch-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: var(--bg);
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .batch-item .text {
+            flex: 1;
+            font-size: 0.9rem;
+            margin-right: 1rem;
+            direction: auto;
+        }
+
+        .batch-item .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-card .label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        .full-width { grid-column: 1 / -1; }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--accent-glow);
+            color: var(--accent);
+        }
+
+        .tab:hover:not(.active) {
+            background: var(--card-hover);
+            color: var(--text);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 Sentiment Analysis Platform</h1>
+            <p>Multi-language AI-powered sentiment analysis API</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number" id="stat-total">0</div>
+                <div class="label">Total Requests</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="stat-positive">0</div>
+                <div class="label">Positive</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="stat-negative">0</div>
+                <div class="label">Negative</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="stat-neutral">0</div>
+                <div class="label">Neutral</div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card full-width">
+                <div class="input-group">
+                    <label>🔑 API Key</label>
+                    <input type="text" id="apiKey" placeholder="Enter your API key (e.g., sk-test-demo)" value="sk-test-demo">
+                </div>
+                <div class="input-group">
+                    <label>🌐 API Base URL</label>
+                    <input type="text" id="baseUrl" placeholder="http://localhost:8000" value="http://localhost:8000">
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>📝 Single Analysis</h2>
+                <div class="input-group">
+                    <label>Enter text to analyze</label>
+                    <textarea id="singleText" placeholder="Type something... (supports English, Arabic, French, Hindi, etc.)"></textarea>
+                </div>
+                <button class="btn" onclick="analyzeSingle()" id="singleBtn">
+                    <span>⚡ Analyze</span>
+                </button>
+
+                <div class="loading" id="singleLoading">
+                    <div class="spinner"></div>
+                    <p>Analyzing sentiment...</p>
+                </div>
+
+                <div class="error" id="singleError"></div>
+
+                <div class="result" id="singleResult">
+                    <div class="sentiment-badge" id="singleBadge">
+                        <span id="singleEmoji">😐</span>
+                        <span id="singleSentiment">Neutral</span>
+                    </div>
+
+                    <div style="margin-bottom: 0.5rem;">
+                        <small style="color: var(--text-muted);">Confidence</small>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="singleConfidenceBar" style="width: 0%"></div>
+                        </div>
+                        <small id="singleConfidenceValue" style="color: var(--text-muted);">0%</small>
+                    </div>
+
+                    <div class="meta-grid">
+                        <div class="meta-item">
+                            <div class="value" id="singleLang">-</div>
+                            <div class="label">Language</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="value" id="singleTime">-</div>
+                            <div class="label">Time (ms)</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="value" id="singleCache">-</div>
+                            <div class="label">Cached</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📦 Batch Analysis</h2>
+                <div class="input-group">
+                    <label>Enter multiple texts (one per line)</label>
+                    <textarea id="batchText" placeholder="I love this!&#10;This is terrible&#10;هذا رائع&#10;J\'adore ça"></textarea>
+                </div>
+                <button class="btn" onclick="analyzeBatch()" id="batchBtn">
+                    <span>📊 Analyze Batch</span>
+                </button>
+
+                <div class="loading" id="batchLoading">
+                    <div class="spinner"></div>
+                    <p>Analyzing batch...</p>
+                </div>
+
+                <div class="error" id="batchError"></div>
+
+                <div class="result" id="batchResult">
+                    <div style="margin-bottom: 1rem;">
+                        <strong id="batchCount">0 results</strong>
+                        <span style="color: var(--text-muted); font-size: 0.9rem;" id="batchTime"></span>
+                    </div>
+                    <div class="batch-results" id="batchResults"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card full-width">
+            <h2>📚 Quick Examples</h2>
+            <div class="tabs">
+                <button class="tab active" onclick="setExample('en')">🇬🇧 English</button>
+                <button class="tab" onclick="setExample('ar')">🇸🇦 Arabic</button>
+                <button class="tab" onclick="setExample('fr')">🇫🇷 French</button>
+                <button class="tab" onclick="setExample('hi')">🇮🇳 Hindi</button>
+                <button class="tab" onclick="setExample('batch')">📦 Batch</button>
+            </div>
+            <div id="exampleBox" style="padding: 1rem; background: var(--bg); border-radius: 10px; color: var(--text-muted);">
+                Click a tab above to load example text
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const examples = {
+            en: { text: "I absolutely love this product! It exceeded all my expectations.", type: "single" },
+            ar: { text: "هذا المنتج رائع جداً وأنا سعيد به كل السعادة", type: "single" },
+            fr: { text: "J\'adore ce produit, c\'est absolument magnifique!", type: "single" },
+            hi: { text: "यह उत्पाद बहुत अच्छा है, मुझे यह पसंद आया", type: "single" },
+            batch: { 
+                text: "I love this!\nThis is the worst experience ever\nهذا المنتج رائع\nJ\'adore ça\nयह बहुत बुरा है", 
+                type: "batch" 
+            }
+        };
+
+        let stats = { total: 0, positive: 0, negative: 0, neutral: 0 };
+
+        function getHeaders() {
+            return {
+                "Content-Type": "application/json",
+                "X-API-Key": document.getElementById("apiKey").value
+            };
+        }
+
+        function getBaseUrl() {
+            return document.getElementById("baseUrl").value.replace(/\/$/, '');
+        }
+
+        function setExample(lang) {
+            document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+            event.target.classList.add("active");
+
+            const ex = examples[lang];
+            document.getElementById("exampleBox").textContent = ex.text;
+
+            if (ex.type === "single") {
+                document.getElementById("singleText").value = ex.text;
+            } else {
+                document.getElementById("batchText").value = ex.text;
+            }
+        }
+
+        function getSentimentColor(sentiment) {
+            if (sentiment === "positive") return "var(--positive)";
+            if (sentiment === "negative") return "var(--negative)";
+            return "var(--neutral)";
+        }
+
+        function getSentimentClass(sentiment) {
+            if (sentiment === "positive") return "sentiment-positive";
+            if (sentiment === "negative") return "sentiment-negative";
+            return "sentiment-neutral";
+        }
+
+        function getSentimentEmoji(sentiment) {
+            if (sentiment === "positive") return "😊";
+            if (sentiment === "negative") return "😞";
+            return "😐";
+        }
+
+        function updateStats(sentiment) {
+            stats.total++;
+            stats[sentiment]++;
+            document.getElementById("stat-total").textContent = stats.total;
+            document.getElementById("stat-positive").textContent = stats.positive;
+            document.getElementById("stat-negative").textContent = stats.negative;
+            document.getElementById("stat-neutral").textContent = stats.neutral;
+        }
+
+        async function analyzeSingle() {
+            const text = document.getElementById("singleText").value.trim();
+            if (!text) {
+                alert("Please enter some text!");
+                return;
+            }
+
+            document.getElementById("singleLoading").classList.add("show");
+            document.getElementById("singleResult").classList.remove("show");
+            document.getElementById("singleError").classList.remove("show");
+            document.getElementById("singleBtn").disabled = true;
+
+            try {
+                const response = await fetch(`${getBaseUrl()}/api/v1/sentiment/predict`, {
+                    method: "POST",
+                    headers: getHeaders(),
+                    body: JSON.stringify({ text })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || "Something went wrong");
+                }
+
+                const sentiment = data.sentiment;
+                const confidence = (data.confidence * 100).toFixed(1);
+
+                document.getElementById("singleBadge").className = `sentiment-badge ${getSentimentClass(sentiment)}`;
+                document.getElementById("singleEmoji").textContent = getSentimentEmoji(sentiment);
+                document.getElementById("singleSentiment").textContent = sentiment.charAt(0).toUpperCase() + sentiment.slice(1);
+
+                document.getElementById("singleConfidenceBar").style.width = `${confidence}%`;
+                document.getElementById("singleConfidenceBar").style.background = getSentimentColor(sentiment);
+                document.getElementById("singleConfidenceValue").textContent = `${confidence}%`;
+
+                document.getElementById("singleLang").textContent = (data.language || "en").toUpperCase();
+                document.getElementById("singleTime").textContent = data.processing_time_ms?.toFixed(1) || "-";
+                document.getElementById("singleCache").textContent = data.cached ? "✅ Yes" : "❌ No";
+
+                document.getElementById("singleResult").classList.add("show");
+
+                if (!data.cached) updateStats(sentiment);
+
+            } catch (err) {
+                document.getElementById("singleError").textContent = `❌ ${err.message}`;
+                document.getElementById("singleError").classList.add("show");
+            } finally {
+                document.getElementById("singleLoading").classList.remove("show");
+                document.getElementById("singleBtn").disabled = false;
+            }
+        }
+
+        async function analyzeBatch() {
+            const text = document.getElementById("batchText").value.trim();
+            if (!text) {
+                alert("Please enter some texts!");
+                return;
+            }
+
+            const texts = text.split("\n").map(t => t.trim()).filter(t => t);
+
+            document.getElementById("batchLoading").classList.add("show");
+            document.getElementById("batchResult").classList.remove("show");
+            document.getElementById("batchError").classList.remove("show");
+            document.getElementById("batchBtn").disabled = true;
+
+            try {
+                const response = await fetch(`${getBaseUrl()}/api/v1/sentiment/predict/batch`, {
+                    method: "POST",
+                    headers: getHeaders(),
+                    body: JSON.stringify({ texts })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || "Something went wrong");
+                }
+
+                document.getElementById("batchCount").textContent = `${data.count} results`;
+                document.getElementById("batchTime").textContent = data.total_processing_time_ms 
+                    ? `(${(data.total_processing_time_ms / 1000).toFixed(2)}s)` 
+                    : "";
+
+                const container = document.getElementById("batchResults");
+                container.innerHTML = "";
+
+                data.results.forEach(item => {
+                    const div = document.createElement("div");
+                    div.className = "batch-item";
+                    div.innerHTML = `
+                        <div class="text">${item.text}</div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 1.2rem;">${getSentimentEmoji(item.sentiment)}</span>
+                            <span class="badge ${getSentimentClass(item.sentiment)}">
+                                ${item.sentiment} (${(item.confidence * 100).toFixed(0)}%)
+                            </span>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">${(item.language || "en").toUpperCase()}</span>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                    if (!item.cached) updateStats(item.sentiment);
+                });
+
+                document.getElementById("batchResult").classList.add("show");
+
+            } catch (err) {
+                document.getElementById("batchError").textContent = `❌ ${err.message}`;
+                document.getElementById("batchError").classList.add("show");
+            } finally {
+                document.getElementById("batchLoading").classList.remove("show");
+                document.getElementById("batchBtn").disabled = false;
+            }
+        }
+
+        // Enter key support
+        document.getElementById("singleText").addEventListener("keydown", e => {
+            if (e.key === "Enter" && e.ctrlKey) analyzeSingle();
+        });
+    </script>
+</body>
+</html>
