@@ -1,0 +1,26 @@
+# version: '3.8'    ← امسح السطر ده
+
+services:
+  api:
+    build:
+      context: .          # ⚠️ مهم: البناء من الفولدر الحالي
+      dockerfile: Dockerfile
+    container_name: sentiment_api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./data/sentiment.db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: sentiment_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
